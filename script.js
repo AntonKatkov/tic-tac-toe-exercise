@@ -2,6 +2,7 @@ let fields = [null, null, null, null, null, null, null, null, null];
 let currentPlayer = 'circle';  // Start mit 'circle'
 let player1 = '';
 let player2 = '';
+let gameOver = false;  // Neue Variable, um das Spielende zu kontrollieren
 function init() {
     render();
     getPlayerNames();
@@ -18,8 +19,15 @@ function getPlayerNames() {
 }
 
 function updatePlayerInfo() {
-    document.getElementById('player-info').innerText = `${currentPlayer === 'circle' ? player1 : player2} ist am Zug (${currentPlayer === 'circle' ? 'O' : 'X'})`;
+    if (gameOver) {
+        // Wenn das Spiel vorbei ist, zeige an, welcher Spieler gewonnen hat
+        document.getElementById('player-info').innerText = `${currentPlayer === 'circle' ? player2 : player1} hat gewonnen!`;
+    } else {
+        // Normaler Zugstatus, wenn das Spiel noch läuft
+        document.getElementById('player-info').innerText = `${currentPlayer === 'circle' ? player1 : player2} ist am Zug (${currentPlayer === 'circle' ? 'O' : 'X'})`;
+    }
 }
+
 
 function generateAnimatedCircleSVG() {
     return `
@@ -67,6 +75,13 @@ function generateAnimatedXSVG() {
 function render() {
     let tableHTML = '<table>';
 
+        // Füge die Spielerinfo in einer separaten Zeile hinzu
+        tableHTML += `
+        <div colspan="3" id="player-info" style="text-align: center; padding-bottom: 100px; font-size: 18px;">>
+                ${currentPlayer === 'circle' ? player1 : player2} ist am Zug (${currentPlayer === 'circle' ? 'O' : 'X'})
+        </div>
+    `;
+
     for (let i = 0; i < 3; i++) {
         tableHTML += '<tr>';
         for (let j = 0; j < 3; j++) {
@@ -88,20 +103,28 @@ function render() {
     }
 
     function handleClick(index) {
+        if (gameOver) return;  // Wenn das Spiel vorbei ist, keine weiteren Klicks zulassen
         if (!fields[index]) {  // Nur wenn das Feld leer ist
             fields[index] = currentPlayer;  // Setzt das Feld auf den aktuellen Spieler
             render();  // Rendert das Spielfeld neu
+
+
+
     
-            setTimeout(() => {
-                if (checkWin()) {
-                    alert(`${currentPlayer === 'circle' ? player1 : player2} hat gewonnen!`);
-                    resetGame();
+                const winningCombination = checkWin();
+                if (winningCombination) {
+                    gameOver = true;  // Setzt gameOver auf true, um weitere Klicks zu verhindern
+                    updatePlayerInfo();  // Zeigt den nächsten Spieler an
+                    drawWinningLine(winningCombination);
+                    setTimeout(() => {
+                        alert(`${currentPlayer === 'circle' ? player1 : player2} hat gewonnen!`);
+                        resetGame();
+                    }, 1000);
                 } else {
                     currentPlayer = currentPlayer === 'circle' ? 'cross' : 'circle';  // Wechselt den Spieler
-                    updatePlayerInfo();  // Zeigt den nächsten Spieler an
                     checkGameOver();  // Überprüft, ob das Spiel vorbei ist
                 }
-            }, 500);  // Wartezeit von 500ms, passend zur Animationsdauer
+            
         }
     }
     function checkGameOver() {
@@ -114,29 +137,67 @@ function render() {
             }, 1000);
         }
     }
-function checkWin() {
-    let winningCombinations = [
-        [0, 1, 2], // erste Reihe
-        [3, 4, 5], // zweite Reihe
-        [6, 7, 8], // dritte Reihe
-        [0, 3, 6], // erste Spalte
-        [1, 4, 7], // zweite Spalte
-        [2, 5, 8], // dritte Spalte
-        [0, 4, 8], // Diagonale von oben links nach unten rechts
-        [2, 4, 6]  // Diagonale von oben rechts nach unten links
-    ];
-
-    return winningCombinations.some(combination => {
-        let [a, b, c] = combination;
-        return fields[a] && fields[a] === fields[b] && fields[a] === fields[c];
-    });
-}
+    function checkWin() {
+        let winningCombinations = [
+            [0, 1, 2], // erste Reihe
+            [3, 4, 5], // zweite Reihe
+            [6, 7, 8], // dritte Reihe
+            [0, 3, 6], // erste Spalte
+            [1, 4, 7], // zweite Spalte
+            [2, 5, 8], // dritte Spalte
+            [0, 4, 8], // Diagonale von oben links nach unten rechts
+            [2, 4, 6]  // Diagonale von oben rechts nach unten links
+        ];
+    
+        for (let combination of winningCombinations) {
+            let [a, b, c] = combination;
+            if (fields[a] && fields[a] === fields[b] && fields[a] === fields[c]) {
+                return combination;  // Rückgabe der Gewinnkombination
+            }
+        }
+        return null;
+    }
+    
 
 function resetGame() {
     fields = [null, null, null, null, null, null, null, null, null];  // Setzt das Spielfeld zurück
     currentPlayer = 'circle';  // Startet wieder mit 'circle'
+    gameOver = false;  // Setzt gameOver auf false, um ein neues Spiel zu starten
     render();  // Rendert das Spielfeld neu
 }
+
+
+function drawWinningLine(winningCombination) {
+    const cells = document.querySelectorAll('td');
+    const firstCell = cells[winningCombination[0]];
+    const lastCell = cells[winningCombination[2]];
+
+    // Berechnung der Start- und Endkoordinaten
+    const tableRect = document.querySelector('table').getBoundingClientRect();
+    const startX = firstCell.offsetLeft + firstCell.offsetWidth / 2;
+    const startY = firstCell.offsetTop + firstCell.offsetHeight / 2;
+    const endX = lastCell.offsetLeft + lastCell.offsetWidth / 2;
+    const endY = lastCell.offsetTop + lastCell.offsetHeight / 2;
+
+    // Erstellen der Linie
+    const line = document.createElement('div');
+    line.classList.add('win-line');
+    line.style.left = `${startX + tableRect.left}px`;  // Positionierung relativ zur Tabelle
+    line.style.top = `${startY + tableRect.top}px`;    // Positionierung relativ zur Tabelle
+    line.style.width = `0px`; // Initiale Breite ist 0, wird dann animiert
+    line.style.transform = `rotate(${Math.atan2(endY - startY, endX - startX)}rad)`;
+
+    // Linie dem Content-Bereich hinzufügen
+    document.getElementById('content').appendChild(line);
+
+    // Verzögerung, um sicherzustellen, dass die Linie vollständig gezeichnet wird
+    setTimeout(() => {
+        const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+        line.style.width = `${distance}px`;
+    }, 10);
+}
+
+
 
 
 

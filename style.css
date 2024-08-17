@@ -4,6 +4,7 @@ body {
     color: #FFFFFF;
     height: 100vh;
     margin: 0px;
+    overflow: hidden;
 }
 
 h1 {
@@ -16,7 +17,7 @@ h1 {
     justify-content: center;
     flex-direction: column;
     align-items: center;
-    height: 100vh;
+    height: 50vh;
     margin: 0px;
 
 }
@@ -43,4 +44,14 @@ td + td {
 
 tr + tr td {
     border-top: 5px solid #FFFFFF;
+}
+
+
+.win-line {
+    position: absolute;
+    background-color: #ff0000;
+    height: 5px;
+    z-index: 10;
+    transform-origin: 0 0; /* Die Linie wird vom Startpunkt aus transformiert */
+    transition: width 0.5s ease;
 }
